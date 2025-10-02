@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    /* ✅ Unchanged CSS */
+    body {font-family:"Segoe UI",Roboto,Arial,sans-serif;background:#f9fafb;margin:80;padding:20px;color:#111;}
+    .filters {display: flex;gap: 10px;margin-top: 30px;}
+    .filters select {padding:6px;}
+    .actions {margin:15px 0;}
+    button {margin-right:8px;padding:6px 12px;border:none;border-radius:6px;cursor:pointer;}
+    button:hover {opacity:0.9;}
+    #editBtn,#importBtn,#exportBtn,#addAssetBtn {background:#1E90FF;color:#fff;}
+    #deleteBtn {background:#FF4545;color:#fff;}
+    table {width:100%;border-collapse:collapse;margin-top:20px;}
+    th,td {padding:8px 10px;border-bottom:1px solid #ddd;text-align:center;}
+    tr:hover {background:#f1f5f9;}
+    .status-available,.status-inuse,.status-defective,.status-deployedavailable {
+      color:white;padding:4px 8px;border-radius:12px;display:inline-block;text-align:center;margin:0 auto;
+    }
+    .status-available {background:#16a34a;}
+    .status-inuse {background:#2563eb;}
+    .status-defective {background:#dc2626;}
+    .status-deployedavailable {background:#facc15;color:#111;}
+    #search {margin-top:10px;padding:6px;width:250px;}
+    .modal {display:none;position:fixed;z-index:1;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.4);}
+  
+.modal-content {
+  background: #fff;
+  margin: 20px auto;        
+  padding: 20px;            
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+  box-sizing: border-box;   
+}
+
+.modal-content input,
+.modal-content select,
+.modal-content button {
+  width: 100%;              
+  box-sizing: border-box;   
+}
+
+    .modal-content h2 {margin-top:0;margin-bottom:15px;color:#2563eb;text-align:center;}
+    .modal-content input, .modal-content select {
+      width:100%;margin-bottom:12px;padding:8px 10px;
+      border:1px solid #ddd;border-radius:6px;font-size:14px;
+    }
+    .modal-content button {
+      width:100%;padding:10px;border:none;border-radius:6px;
+      background:#2563eb;color:white;font-weight:bold;cursor:pointer;
+    }
+    .modal-content button:hover {background:#1e40af;}
+    .close {float:right;font-size:22px;cursor:pointer;}
+    table th {background: #2563eb;color: #fff;}
+    #chartWrapper {margin-top:20px; max-width:600px;}
+  </style>
+</head>
+<body>
+
+<h1>
+  Inventory System - CF Outsourcing Solutions
+  <div class="filters">
+    <select id="filterStatus">
+      <option value="">All Status</option>
+      <option value="Available">Available</option>
+      <option value="In Use">In Use</option>
+      <option value="Defective">Defective</option>
+      <option value="Deployed Available">Deployed Available</option>
+    </select>
+    <select id="filterDate">
+      <option value="">Sort by Date</option>
+      <option value="newest">Newest</option>
+      <option value="oldest">Oldest</option>
+    </select>
+  </div>
+</h1>
+
+<input type="text" id="search" placeholder="Search inventory...">
+
+<div class="actions">
+  <button id="editBtn">Edit</button>
+  <button id="deleteBtn">Delete</button>
+  <button id="importBtn">Import</button>
+  <button id="exportBtn">Export</button>
+  <button id="addAssetBtn">Add Asset</button>
+  <input type="file" id="importFile" accept=".csv" style="display:none;">
+</div>
+
+<!-- ✅ Chart wrapper only (counters removed) -->
+<div id="chartWrapper">
+  <canvas id="statusChart" height="200"></canvas>
+</div>
+
+<table id="inventoryTable">
+  <thead>
+    <tr>
+      <th><input type="checkbox" id="selectAll"></th>
+      <th>Asset Tag</th>
+      <th>Asset Name</th>
+      <th>Brand/Model</th>
+      <th>Serial No.</th>
+      <th>Status</th>
+      <th>Location</th>
+      <th>Station No.</th>
+      <th>Warranty</th>
+      <th>Vendor</th>
+      <th>Date Purchased</th>
+      <th>Date Added/Updated</th>
+      <th>Remarks</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<div id="assetModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2 id="modalTitle">Add Asset</h2>
+
+    <input type="text" id="tag" placeholder="Asset Tag" list="tagList"><datalist id="tagList"></datalist>
+    <input type="text" id="assetName" placeholder="Asset Name" list="assetNameList"><datalist id="assetNameList"></datalist>
+    <input type="text" id="assetType" placeholder="Brand/Model" list="assetTypeList"><datalist id="assetTypeList"></datalist>
+    <input type="text" id="serial" placeholder="Serial Number" list="serialList"><datalist id="serialList"></datalist>
+
+    <select id="status">
+      <option value="">-- Select Status --</option>
+      <option value="Available">Available</option>
+      <option value="In Use">In Use</option>
+      <option value="Defective">Defective</option>
+      <option value="Deployed Available">Deployed Available</option>
+    </select>
+
+    <input type="text" id="location" placeholder="Location" list="locationList"><datalist id="locationList"></datalist>
+    <input type="text" id="station" placeholder="Station No." list="stationList"><datalist id="stationList"></datalist>
+    <input type="text" id="warranty" placeholder="Warranty" list="warrantyList"><datalist id="warrantyList"></datalist>
+
+    <input type="text" id="vendor" placeholder="Vendor" list="vendorList"><datalist id="vendorList"></datalist>
+
+    <input type="date" id="datePurchased" placeholder="Date Purchased">
+
+    <input type="text" id="notes" placeholder="Remarks" list="notesList" autocomplete="off"><datalist id="notesList"></datalist>
+
+    <button id="saveAssetBtn">Save</button>
+  </div>
+</div>
+
+<!-- ✅ Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  let assets = JSON.parse(localStorage.getItem("assets")) || [];
+  let editIndex = null;
+  let statusChart = null;
+
+  function normalizeStatus(asset){
+    if (asset.status === "Deployed Available") {}
+    else if (asset.station && asset.station.trim() !== "") {asset.status = "In Use";}
+    else if (!asset.status || asset.status.trim() === "") {asset.status = "Available";}
+    return asset;
+  }
+
+  function renderTable(){
+    const tbody = document.querySelector("#inventoryTable tbody");
+    tbody.innerHTML = "";
+    let filteredAssets = [...assets];
+
+    const statusFilter = document.getElementById("filterStatus").value;
+    const dateSort = document.getElementById("filterDate").value;
+
+    if (statusFilter) filteredAssets = filteredAssets.filter(a => a.status === statusFilter);
+    if (dateSort === "newest") filteredAssets.sort((a,b) => new Date(b.date) - new Date(a.date));
+    if (dateSort === "oldest") filteredAssets.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+    filteredAssets.forEach((asset, i) => {
+      asset = normalizeStatus(asset);
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td><input type="checkbox" data-index="${i}"></td>
+        <td>${asset.tag || ""}</td>
+        <td>${asset.assetName || ""}</td>
+        <td>${asset.assetType || ""}</td>
+        <td>${asset.serial || ""}</td>
+        <td><span class="status-${asset.status.replace(/\s/g, '').toLowerCase()}">${asset.status}</span></td>
+        <td>${asset.location || ""}</td>
+        <td>${asset.station || ""}</td>
+        <td>${asset.warranty || ""}</td>
+        <td>${asset.vendor || ""}</td>
+        <td>${asset.datePurchased || ""}</td>
+        <td>${asset.date || ""}</td>
+        <td>${asset.notes || ""}</td>
+      `;
+      tbody.appendChild(row);
+    });
+    updateChartCount();
+    localStorage.setItem("assets", JSON.stringify(assets));
+  }
+
+  function updateChartCount(){
+    const rows = [...document.querySelectorAll("#inventoryTable tbody tr")]
+      .filter(r => r.style.display !== "none");
+    let a=0,u=0,d=0,p=0;
+    rows.forEach(row=>{
+      const status = row.querySelector("span").innerText;
+      if(status==="Available")a++;
+      else if(status==="In Use")u++;
+      else if(status==="Defective")d++;
+      else if(status==="Deployed Available")p++;
+    });
+
+    updateChart(a,u,d,p);
+  }
+
+  function updateChart(a,u,d,p){
+    const ctx=document.getElementById('statusChart').getContext('2d');
+    if(statusChart) statusChart.destroy();
+    statusChart=new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:['Available','In Use','Defective','Deployed Available'],
+        datasets:[{
+          data:[a,u,d,p],
+          backgroundColor:['#16a34a','#2563eb','#dc2626','#facc15']
+        }]
+      },
+      options:{
+        indexAxis:'y',
+        responsive:true,
+        animation:{duration:1200,easing:'easeOutBounce'},
+        scales:{x:{beginAtZero:true,ticks:{precision:0}}},
+        plugins:{legend:{display:false}}
+      }
+    });
+  }
+
+  function clearAssetForm(){
+    ["tag","assetName","assetType","serial","vendor","status","location","station","warranty","datePurchased","notes"]
+      .forEach(id => document.getElementById(id).value = "");
+  }
+
+  function openModal(mode,index=null){
+    clearAssetForm(); editIndex=index;
+    document.getElementById("modalTitle").textContent = mode==="add" ? "Add Asset" : "Edit Asset";
+    document.getElementById("assetModal").style.display="block";
+    if(mode==="edit" && index!==null){
+      const a=assets[index];
+      ["tag","assetName","assetType","serial","vendor","status","location","station","warranty","datePurchased","notes"]
+        .forEach(id => document.getElementById(id).value = a[id] || "");
+    }
+  }
+
+  document.getElementById("addAssetBtn").onclick = () => openModal("add");
+  document.getElementById("editBtn").onclick = () => {
+    const s=document.querySelector("#inventoryTable tbody input[type='checkbox']:checked");
+    if(!s){alert("Please select a row to edit.");return;}
+    openModal("edit",parseInt(s.dataset.index));
+  };
+
+  document.getElementById("saveAssetBtn").onclick = () => {
+    const now=new Date().toLocaleString();
+    const stationVal=document.getElementById("station").value.trim();
+    let statusVal=document.getElementById("status").value.trim();
+    if(statusVal==="Defective"||statusVal==="Deployed Available"){}
+    else if(!stationVal){statusVal="Available";}
+    else{statusVal="In Use";}
+
+    const asset={};
+    ["tag","assetName","assetType","serial","vendor","location","station","warranty","datePurchased","notes"]
+      .forEach(id => asset[id] = document.getElementById(id).value);
+    asset.status = statusVal;
+    asset.date = now;
+
+/* ✅ Duplicate Serial No. Check */
+const newSerial = asset.serial.trim().toLowerCase();
+if (newSerial) {
+  const duplicateSerial = assets.some((a,i) => 
+    a.serial && a.serial.trim().toLowerCase() === newSerial &&
+    (editIndex === null || editIndex !== i)
+  );
+  if (duplicateSerial) {
+    alert("⚠️ Duplicate Serial Number detected. Entry blocked!");
+    document.getElementById("serial").focus();
+    return;
+  }
+}
+
+/* ✅ Duplicate Asset Tag Check */
+const newTag = asset.tag.trim().toLowerCase();
+if (newTag) {
+  const duplicateTag = assets.some((a,i) => 
+    a.tag && a.tag.trim().toLowerCase() === newTag &&
+    (editIndex === null || editIndex !== i)
+  );
+  if (duplicateTag) {
+    alert("⚠️ Duplicate Asset Tag detected. Entry blocked!");
+    document.getElementById("tag").focus();
+    return;
+  }
+}
+
+
+    if(editIndex===null) assets.push(asset);
+    else {assets[editIndex]=asset; editIndex=null;}
+    renderTable(); updateDatalists();
+    document.getElementById("assetModal").style.display="none";
+  };
+
+  document.querySelector(".close").onclick=()=>document.getElementById("assetModal").style.display="none";
+
+  document.getElementById("search").addEventListener("input",function(){
+    const q=this.value.toLowerCase();
+    document.querySelectorAll("#inventoryTable tbody tr").forEach(row=>{
+      row.style.display=row.innerText.toLowerCase().includes(q)?"":"none";
+    });
+    updateChartCount();
+  });
+
+  ["filterStatus","filterDate"].forEach(id=>document.getElementById(id).onchange=renderTable);
+
+  document.getElementById("deleteBtn").onclick=()=>{
+    const boxes=document.querySelectorAll("#inventoryTable tbody input[type='checkbox']:checked");
+    if(boxes.length===0){alert("Please select at least one row to delete.");return;}
+    if(!confirm("Are you sure you want to delete the selected asset(s)?"))return;
+    const idx=[...boxes].map(cb=>parseInt(cb.dataset.index));
+    assets=assets.filter((_,i)=>!idx.includes(i));
+    renderTable(); updateDatalists();
+  };
+
+  document.getElementById("selectAll").addEventListener("change",function(){
+    document.querySelectorAll("#inventoryTable tbody input[type='checkbox']").forEach(cb=>cb.checked=this.checked);
+  });
+
+  document.getElementById("exportBtn").onclick=()=>{
+    let csv="Asset Tag,Asset Name,Brand/Model,Serial No.,Status,Location,Station No.,Warranty,Vendor,Date Purchased,Date Added/Updated,Remarks\n";
+    assets.forEach(a=>{
+      csv+=`"${a.tag}","${a.assetName||""}","${a.assetType}","${a.serial}","${a.status}","${a.location}","${a.station}","${a.warranty||""}","${a.vendor||""}","${a.datePurchased||""}","${a.date}","${a.notes}"\n`;
+    });
+    const blob=new Blob([csv],{type:"text/csv"});
+    const link=document.createElement("a");
+    link.href=URL.createObjectURL(blob);
+
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const yy = String(now.getFullYear()).slice(-2);
+    const fileName = `CFInventory${mm}${dd}${yy}.csv`;
+
+    link.download = fileName;
+    link.click();
+  };
+
+  document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
+  document.getElementById("importFile").addEventListener("change",function(e){
+    const file=e.target.files[0]; if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(ev){
+      const lines=ev.target.result.split("\n").slice(1);
+      lines.forEach(line=>{
+        const cols=line.split(",");
+        if(cols.length>=12){
+          assets.push({
+            tag:cols[0].replace(/"/g,""),
+            assetName:cols[1].replace(/"/g,""),
+            assetType:cols[2].replace(/"/g,""),
+            serial:cols[3].replace(/"/g,""),
+            status:cols[4].replace(/"/g,""),
+            location:cols[5].replace(/"/g,""),
+            station:cols[6].replace(/"/g,""),
+            warranty:cols[7].replace(/"/g,""),
+            vendor:cols[8].replace(/"/g,""),
+            datePurchased:cols[9].replace(/"/g,""),
+            date:cols[10].replace(/"/g,""),
+            notes:cols[11].replace(/"/g,"")
+          });
+        }
+      });
+      renderTable(); updateDatalists();
+    };
+    reader.readAsText(file);
+  });
+
+  function updateDatalists(){
+    const fields=["tag","assetName","assetType","serial","vendor","location","station","warranty","notes"];
+    fields.forEach(f=>{
+      const values=[...new Set(assets.map(a=>a[f]).filter(v=>v))];
+      const dl=document.getElementById(f+"List");
+      if(dl){
+        dl.innerHTML=values.map(v=>`<option value="${v}">`).join("");
+      }
+    });
+  }
+
+  renderTable(); updateDatalists();
+</script>
+</body>
+</html>
