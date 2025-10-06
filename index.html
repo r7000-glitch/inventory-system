@@ -3,189 +3,554 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Inventory System - CF Outsourcing Solutions</title>
+  <title>Inventory System</title>
   <style>
-    body {font-family:"Segoe UI",Roboto,Arial,sans-serif;background:#f9fafb;margin:0;padding:20px;color:#111;}
-    h1 {text-align:center;margin-bottom:20px;}
-    table {width:100%;border-collapse:collapse;margin-top:20px;}
-    th,td {border:1px solid #ccc;padding:8px;text-align:left;font-size:14px;}
-    th {background:#f3f4f6;cursor:pointer;}
-    tr:nth-child(even){background:#f9fafb;}
-    .actions {margin:10px 0;display:flex;gap:10px;flex-wrap:wrap;}
-    button {padding:8px 12px;border:none;border-radius:4px;background:#2563eb;color:#fff;cursor:pointer;}
-    button:hover {background:#1e40af;}
-    input,select {padding:6px;border:1px solid #ccc;border-radius:4px;}
-    .modal {display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;overflow:auto;background:rgba(0,0,0,0.5);}
-    .modal-content {background:#fff;margin:5% auto;padding:20px;border:1px solid #888;width:400px;max-width:90%;border-radius:8px;}
-    .close {float:right;font-size:28px;font-weight:bold;cursor:pointer;}
-    .filters {display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
-    .login-modal {display:flex;align-items:center;justify-content:center;height:100vh;background:#888;}
-    .login-box {background:#fff;padding:20px;border-radius:8px;width:300px;box-shadow:0 4px 6px rgba(0,0,0,0.1);}
-    .login-box h2 {text-align:center;margin-bottom:15px;}
-    .login-box input {width:100%;padding:10px;margin-bottom:10px;border:1px solid #ccc;border-radius:4px;}
-    .login-box button {width:100%;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;}
-    .login-box button:hover {background:#1e40af;}
+    /* === ORIGINAL UI STYLES (UNCHANGED) === */
+    body { font-family: "Segoe UI", Roboto, Arial, sans-serif; background: #f9fafb; margin: 0; padding: 20px; color: #111; }
+    .filters { display: flex; gap: 10px; margin-top: 30px; }
+    .filters select { padding: 6px; }
+    .actions { margin: 15px 0; }
+    button { margin-right: 8px; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; }
+    button:hover { opacity: 0.9; }
+    #editBtn, #importBtn, #exportBtn, #addAssetBtn, #logoutBtn { background: #1E90FF; color: #fff; }
+    #deleteBtn { background: #FF4545; color: #fff; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #ddd; text-align: center; }
+    tr:hover { background: #f1f5f9; }
+    .status-available, .status-inuse, .status-defective, .status-deployedavailable {
+      color: white; padding: 4px 8px; border-radius: 12px; display: inline-block; text-align: center; margin: 0 auto;
+    }
+    .status-available { background: #16a34a; }
+    .status-inuse { background: #2563eb; }
+    .status-defective { background: #dc2626; }
+    .status-deployedavailable { background: #facc15; color: #111; }
+    #search { margin-top: 10px; padding: 6px; width: 250px; }
+    .counters { margin-top: 15px; font-weight: bold; }
+    .counters span { margin-right: 20px; }
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); }
+    .modal-content {
+      background: #fff; margin: 20px auto; padding: 10px 30px; border-radius: 8px;
+      width: 90%; max-width: 500px; box-sizing: border-box;
+    }
+    .modal-content h2 { margin-top: 0; margin-bottom: 15px; color: #2563eb; text-align: center; }
+    .modal-content input, .modal-content select {
+      width: 100%; margin-bottom: 12px; padding: 8px 10px;
+      border: 1px solid #ddd; border-radius: 6px; font-size: 14px;
+    }
+    .modal-content button { width: 100%; padding: 10px; border: none; border-radius: 6px; background: #2563eb; color: white; font-weight: bold; cursor: pointer; }
+    .modal-content button:hover { background: #1e40af; }
+    .close { float: right; font-size: 22px; cursor: pointer; }
+    table th { background: #2563eb; color: #fff; }
+
+    /* Login modal */
+    #loginModal { display: flex; justify-content: center; align-items: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 2000; }
+    #loginModal .modal-content { max-width: 400px; }
   </style>
 </head>
 <body>
 
-<!-- 🔒 Login Modal -->
-<div id="loginModal" class="login-modal">
-  <div class="login-box">
-    <h2>Login</h2>
-    <input type="text" id="username" placeholder="Username" required>
-    <input type="password" id="password" placeholder="Password" required>
-    <button id="loginBtn">Login</button>
-  </div>
-</div>
-
-<!-- 🔑 Main Content -->
-<div id="mainContent" style="display:none;">
-  <h1>Inventory System - CF Outsourcing Solutions</h1>
-
-  <div class="filters">
-    <input type="text" id="searchBox" placeholder="Search...">
+  <!-- LOGIN MODAL (shows on load) -->
+  <div id="loginModal" class="modal" style="display:flex;">
+    <div class="modal-content">
+      <h2>Login</h2>
+      <input type="text" id="username" placeholder="Username">
+      <input type="password" id="password" placeholder="Password">
+      <button id="loginBtn">Login</button>
+    </div>
   </div>
 
-  <div class="actions">
-    <button id="editBtn">Edit</button>
-    <button id="deleteBtn">Delete</button>
-    <button id="importBtn">Import</button>
-    <button id="exportBtn">Export</button>
-    <button id="addAssetBtn">Add Asset</button>
-    <button id="logoutBtn" style="background:#6b7280;color:#fff;">Logout</button>
-    <input type="file" id="importFile" accept=".csv" style="display:none;">
+  <!-- MAIN CONTENT -->
+  <div id="mainContent" style="display:none;">
+    <h1>
+      Inventory System - CF Outsourcing Solutions
+      <div class="filters">
+        <select id="filterStatus">
+          <option value="">All Status</option>
+          <option value="Available">Available</option>
+          <option value="In Use">In Use</option>
+          <option value="Defective">Defective</option>
+          <option value="Deployed Available">Deployed Available</option>
+        </select>
+        <select id="filterType">
+          <option value="">All Types</option>
+          <option value="Lenovo Laptop">Laptop</option>
+          <option value="Monitor">Monitor</option>
+          <option value="Mini PC">Mini PC</option>
+          <option value="Keboard">Keboard</option>
+          <option value="Rapoo Camera">Camera</option>
+        </select>
+        <select id="filterDate">
+          <option value="">Sort by Date</option>
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+        </select>
+      </div>
+    </h1>
+
+    <input type="text" id="search" placeholder="Search inventory...">
+
+    <div class="actions">
+      <button id="editBtn">Edit</button>
+      <button id="deleteBtn">Delete</button>
+      <button id="importBtn">Import</button>
+      <button id="exportBtn">Export</button>
+      <button id="addAssetBtn">Add Asset</button>
+      <button id="logoutBtn">Logout</button>
+      <input type="file" id="importFile" accept=".csv" style="display:none;">
+    </div>
+
+    <div class="counters">
+      <span id="countAvailable">Available: 0</span>
+      <span id="countInUse">In Use: 0</span>
+      <span id="countDefective">Defective: 0</span>
+      <span id="countDeployed">Deployed Available: 0</span>
+    </div>
+
+    <table id="inventoryTable">
+      <thead>
+        <tr>
+          <th><input type="checkbox" id="selectAll"></th>
+          <th>Asset Tag</th>
+          <th>Asset Name</th>
+          <th>Asset Type</th>
+          <th>Serial No.</th>
+          <th>Status</th>
+          <th>Location</th>
+          <th>Station No.</th>
+          <th>Warranty</th>
+          <th>Vendor</th>
+          <th>Date Purchased</th>
+          <th>Date Added/Updated</th>
+          <th>Remarks</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
-  <table id="assetTable">
-    <thead>
-      <tr>
-        <th>Asset Tag</th>
-        <th>Asset Name</th>
-        <th>Asset Type</th>
-        <th>Serial Number</th>
-        <th>Status</th>
-        <th>Location</th>
-        <th>Station</th>
-        <th>Warranty</th>
-        <th>Vendor</th>
-        <th>Date Purchased</th>
-        <th>Date Added</th>
-        <th>Remarks</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
+  <!-- ADD MODAL (keeps your markup) -->
+  <div id="addModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeAdd">&times;</span>
+      <h2>Add Asset</h2>
+      <input type="text" id="add_tag" placeholder="Asset Tag">
+      <input type="text" id="add_assetName" placeholder="Asset Name">
+      <input type="text" id="add_assetType" placeholder="Asset Type">
+      <input type="text" id="add_serial" placeholder="Serial Number">
+      <select id="add_status">
+        <option value="">-- Select Status --</option>
+        <option value="Available">Available</option>
+        <option value="In Use">In Use</option>
+        <option value="Defective">Defective</option>
+        <option value="Deployed Available">Deployed Available</option>
+      </select>
+      <input type="text" id="add_location" placeholder="Location">
+      <input type="text" id="add_station" placeholder="Station No.">
+      <input type="text" id="add_warranty" placeholder="Warranty">
+      <input type="text" id="add_vendor" placeholder="Vendor">
+      <input type="date" id="add_datePurchased" placeholder="Date Purchased">
+      <input type="text" id="add_notes" placeholder="Remarks">
+      <button id="addSaveBtn">Save</button>
+    </div>
+  </div>
+
+  <!-- EDIT MODAL (separate) -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeEdit">&times;</span>
+      <h2>Edit Asset</h2>
+      <input type="text" id="edit_tag" placeholder="Asset Tag">
+      <input type="text" id="edit_assetName" placeholder="Asset Name">
+      <input type="text" id="edit_assetType" placeholder="Asset Type">
+      <input type="text" id="edit_serial" placeholder="Serial Number">
+      <select id="edit_status">
+        <option value="">-- Select Status --</option>
+        <option value="Available">Available</option>
+        <option value="In Use">In Use</option>
+        <option value="Defective">Defective</option>
+        <option value="Deployed Available">Deployed Available</option>
+      </select>
+      <input type="text" id="edit_location" placeholder="Location">
+      <input type="text" id="edit_station" placeholder="Station No.">
+      <input type="text" id="edit_warranty" placeholder="Warranty">
+      <input type="text" id="edit_vendor" placeholder="Vendor">
+      <input type="date" id="edit_datePurchased" placeholder="Date Purchased">
+      <input type="text" id="edit_notes" placeholder="Remarks">
+      <button id="editSaveBtn">Update</button>
+    </div>
+  </div>
 
 <script>
-  /* ✅ Login logic */
-  document.getElementById("loginBtn").onclick = function(){
-    const u = document.getElementById("username").value;
-    const p = document.getElementById("password").value;
-    if(u==="admin" && p==="1234"){
-      localStorage.setItem("loggedIn","true");
-      document.getElementById("loginModal").style.display="none";
-      document.getElementById("mainContent").style.display="block";
+document.addEventListener("DOMContentLoaded", () => {
+  // === USERS (multi-user login) ===
+  const users = [
+    { username: "admin", password: "1234" },
+    { username: "user", password: "user" },
+    { username: "viewer", password: "viewer" }
+  ];
+
+  // Elements
+  const loginModal = document.getElementById("loginModal");
+  const mainContent = document.getElementById("mainContent");
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  const addAssetBtn = document.getElementById("addAssetBtn");
+  const editBtn = document.getElementById("editBtn");
+  const deleteBtn = document.getElementById("deleteBtn");
+  const importBtn = document.getElementById("importBtn");
+  const exportBtn = document.getElementById("exportBtn");
+  const importFile = document.getElementById("importFile");
+  const selectAllCheckbox = document.getElementById("selectAll");
+  const searchInput = document.getElementById("search");
+  const filterStatus = document.getElementById("filterStatus");
+  const filterType = document.getElementById("filterType");
+  const filterDate = document.getElementById("filterDate");
+
+  // Modals & buttons within
+  const addModal = document.getElementById("addModal");
+  const editModal = document.getElementById("editModal");
+  const closeAdd = document.getElementById("closeAdd");
+  const closeEdit = document.getElementById("closeEdit");
+  const addSaveBtn = document.getElementById("addSaveBtn");
+  const editSaveBtn = document.getElementById("editSaveBtn");
+
+  // Data
+  let assets = JSON.parse(localStorage.getItem("assets") || "[]");
+  let editIndex = null;
+
+  // --- LOGIN HANDLING ---
+  loginBtn.addEventListener("click", () => {
+    const u = document.getElementById("username").value.trim();
+    const p = document.getElementById("password").value.trim();
+    const found = users.find(x => x.username === u && x.password === p);
+    if (found) {
+      loginModal.style.display = "none";
+      mainContent.style.display = "block";
+
+      // If viewer role, optionally disable destructive actions (kept simple: disable Delete, Add, Edit)
+      if (found.username === "viewer") {
+        addAssetBtn.disabled = true;
+        editBtn.disabled = true;
+        deleteBtn.disabled = true;
+        importBtn.disabled = true;
+        exportBtn.disabled = false;
+      } else {
+        addAssetBtn.disabled = false;
+        editBtn.disabled = false;
+        deleteBtn.disabled = false;
+        importBtn.disabled = false;
+        exportBtn.disabled = false;
+      }
     } else {
-      alert("Invalid login credentials.");
+      alert("Invalid credentials");
     }
-  };
-  if(localStorage.getItem("loggedIn")==="true"){
-    document.getElementById("loginModal").style.display="none";
-    document.getElementById("mainContent").style.display="block";
+  });
+
+  logoutBtn.addEventListener("click", () => {
+    if (!confirm("Logout?")) return;
+    mainContent.style.display = "none";
+    loginModal.style.display = "flex";
+    document.getElementById("username").value = "";
+    document.getElementById("password").value = "";
+  });
+
+  // --- RENDER / HELPERS ---
+  function normalizeStatus(asset) {
+    if (asset.status === "Deployed Available") {
+      // keep
+    } else if (asset.station && asset.station.trim() !== "") {
+      asset.status = "In Use";
+    } else if (!asset.status || asset.status.trim() === "") {
+      asset.status = "Available";
+    }
+    return asset;
   }
 
-  /* 🔓 Logout */
-  document.getElementById("logoutBtn").onclick = function(){
-    localStorage.removeItem("loggedIn");
-    document.getElementById("mainContent").style.display="none";
-    document.getElementById("loginModal").style.display="flex";
-  };
-
-  /* ✅ CSV line parser (handles commas in remarks) */
-  function parseCSVLine(line) {
-    const regex = /(".*?"|[^",]+)(?=\s*,|\s*$)/g;
-    let result = [];
-    let match;
-    while (match = regex.exec(line)) {
-      result.push(match[0].replace(/^"|"$/g, ""));
-    }
-    return result;
+  function updateCounters() {
+    const rows = Array.from(document.querySelectorAll("#inventoryTable tbody tr"))
+      .filter(r => r.style.display !== "none");
+    let a = 0, u = 0, d = 0, p = 0;
+    rows.forEach(row => {
+      const st = row.querySelector("span")?.innerText || "";
+      if (st === "Available") a++;
+      else if (st === "In Use") u++;
+      else if (st === "Defective") d++;
+      else if (st === "Deployed Available") p++;
+    });
+    document.getElementById("countAvailable").textContent = "Available: " + a;
+    document.getElementById("countInUse").textContent = "In Use: " + u;
+    document.getElementById("countDefective").textContent = "Defective: " + d;
+    document.getElementById("countDeployed").textContent = "Deployed Available: " + p;
   }
 
-  /* Your existing inventory code continues here… */
-  const assets=[];
-  const tbody=document.querySelector("#assetTable tbody");
+  // Render table with filters/search and keep original asset indices for actions
+  function renderTable() {
+    const tbody = document.querySelector("#inventoryTable tbody");
+    tbody.innerHTML = "";
 
-  function renderTable(){
-    tbody.innerHTML="";
-    assets.forEach(a=>{
-      const tr=document.createElement("tr");
-      tr.innerHTML=`
-        <td>${a.tag}</td>
-        <td>${a.assetName||""}</td>
-        <td>${a.assetType}</td>
-        <td>${a.serial}</td>
-        <td>${a.status}</td>
-        <td>${a.location}</td>
-        <td>${a.station}</td>
-        <td>${a.warranty||""}</td>
-        <td>${a.vendor||""}</td>
-        <td>${a.datePurchased||""}</td>
-        <td>${a.date}</td>
-        <td>${a.notes||""}</td>
+    // Build list of {asset, idx} from assets
+    let list = assets.map((a, idx) => ({ a: normalizeStatus(Object.assign({}, a)), idx }));
+
+    // Filter status/type
+    const sf = filterStatus.value;
+    const tf = filterType.value;
+    if (sf) list = list.filter(item => item.a.status === sf);
+    if (tf) list = list.filter(item => item.a.assetType === tf);
+
+    // Sorting by date field (item.a.date)
+    const ds = filterDate.value;
+    if (ds === "newest") list.sort((x, y) => new Date(y.a.date || 0) - new Date(x.a.date || 0));
+    if (ds === "oldest") list.sort((x, y) => new Date(x.a.date || 0) - new Date(y.a.date || 0));
+
+    // Search query
+    const q = (searchInput.value || "").toLowerCase();
+
+    list.forEach(({ a, idx }) => {
+      const rowText = `${a.tag} ${a.assetName} ${a.assetType} ${a.serial} ${a.status} ${a.location} ${a.station} ${a.warranty} ${a.vendor} ${a.datePurchased} ${a.date} ${a.notes}`.toLowerCase();
+      if (q && !rowText.includes(q)) {
+        // create row but hide (so counters treat only visible rows) OR simply skip: we'll skip to keep behavior consistent
+        return;
+      }
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><input type="checkbox" data-index="${idx}"></td>
+        <td>${a.tag || ""}</td>
+        <td>${a.assetName || ""}</td>
+        <td>${a.assetType || ""}</td>
+        <td>${a.serial || ""}</td>
+        <td><span class="status-${(a.status||"").replace(/\s/g, '').toLowerCase()}">${a.status || ""}</span></td>
+        <td>${a.location || ""}</td>
+        <td>${a.station || ""}</td>
+        <td>${a.warranty || ""}</td>
+        <td>${a.vendor || ""}</td>
+        <td>${a.datePurchased || ""}</td>
+        <td>${a.date || ""}</td>
+        <td>${a.notes || ""}</td>
       `;
       tbody.appendChild(tr);
     });
+
+    updateCounters();
+    localStorage.setItem("assets", JSON.stringify(assets));
   }
 
-  document.getElementById("exportBtn").onclick=function(){
-    let csv="Asset Tag,Asset Name,Asset Type,Serial Number,Status,Location,Station,Warranty,Vendor,Date Purchased,Date Added,Remarks\n";
-    assets.forEach(a=>{
-      csv+=`"${a.tag}","${a.assetName||""}","${a.assetType}","${a.serial}","${a.status}","${a.location}","${a.station}","${a.warranty||""}","${a.vendor||""}","${a.datePurchased||""}","${a.date}","${a.notes||""}"\n`;
-    });
-    const blob=new Blob([csv],{type:"text/csv"});
-    const link=document.createElement("a");
-    link.href=URL.createObjectURL(blob);
-    const now=new Date();
-    const mm=String(now.getMonth()+1).padStart(2,"0");
-    const dd=String(now.getDate()).padStart(2,"0");
-    const yy=String(now.getFullYear()).slice(-2);
-    link.download=`CFInventory${mm}${dd}${yy}.csv`;
-    link.click();
-  };
+  // --- SELECT ALL behavior ---
+  selectAllCheckbox.addEventListener("change", function() {
+    const checkboxes = document.querySelectorAll("#inventoryTable tbody input[type='checkbox']");
+    checkboxes.forEach(cb => cb.checked = this.checked);
+  });
 
-  document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
-  document.getElementById("importFile").addEventListener("change",function(e){
-    const file=e.target.files[0]; if(!file)return;
-    const reader=new FileReader();
-    reader.onload=function(ev){
-      const lines=ev.target.result.split("\n").slice(1);
-      lines.forEach(line=>{
-        if(line.trim()==="")return;
-        const cols=parseCSVLine(line);
-        if(cols.length>=12){
-          assets.push({
-            tag:cols[0],
-            assetName:cols[1],
-            assetType:cols[2],
-            serial:cols[3],
-            status:cols[4],
-            location:cols[5],
-            station:cols[6],
-            warranty:cols[7],
-            vendor:cols[8],
-            datePurchased:cols[9],
-            date:cols[10],
-            notes:cols[11]
-          });
-        }
+  // --- ADD FLOW ---
+  addAssetBtn.addEventListener("click", () => {
+    // clear add modal fields
+    ["add_tag","add_assetName","add_assetType","add_serial","add_status","add_location","add_station","add_warranty","add_vendor","add_datePurchased","add_notes"]
+      .forEach(id => document.getElementById(id).value = "");
+    addModal.style.display = "block";
+  });
+
+  closeAdd.addEventListener("click", () => {
+    addModal.style.display = "none";
+  });
+
+  addSaveBtn.addEventListener("click", () => {
+    const asset = {
+      tag: document.getElementById("add_tag").value.trim(),
+      assetName: document.getElementById("add_assetName").value.trim(),
+      assetType: document.getElementById("add_assetType").value.trim(),
+      serial: document.getElementById("add_serial").value.trim(),
+      status: document.getElementById("add_status").value.trim(),
+      location: document.getElementById("add_location").value.trim(),
+      station: document.getElementById("add_station").value.trim(),
+      warranty: document.getElementById("add_warranty").value.trim(),
+      vendor: document.getElementById("add_vendor").value.trim(),
+      datePurchased: document.getElementById("add_datePurchased").value || "",
+      date: new Date().toLocaleDateString(),
+      notes: document.getElementById("add_notes").value.trim()
+    };
+
+    if (!asset.tag || !asset.serial) {
+      alert("Asset Tag and Serial Number are required.");
+      return;
+    }
+
+    // duplicate check (tag OR serial)
+    const dup = assets.some(a => a.tag === asset.tag || a.serial === asset.serial);
+    if (dup) {
+      alert("Duplicate Asset Tag or Serial Number detected. Entry blocked.");
+      return;
+    }
+
+    assets.push(asset);
+    renderTable();
+    addModal.style.display = "none";
+  });
+
+  // --- EDIT FLOW ---
+  editBtn.addEventListener("click", () => {
+    // find first checked checkbox
+    const sel = document.querySelector("#inventoryTable tbody input[type='checkbox']:checked");
+    if (!sel) {
+      alert("Please select a row to edit.");
+      return;
+    }
+    const idx = parseInt(sel.dataset.index, 10);
+    if (isNaN(idx)) {
+      alert("Unable to determine selected asset.");
+      return;
+    }
+    editIndex = idx;
+    const a = assets[idx];
+    // populate edit form
+    document.getElementById("edit_tag").value = a.tag || "";
+    document.getElementById("edit_assetName").value = a.assetName || "";
+    document.getElementById("edit_assetType").value = a.assetType || "";
+    document.getElementById("edit_serial").value = a.serial || "";
+    document.getElementById("edit_status").value = a.status || "";
+    document.getElementById("edit_location").value = a.location || "";
+    document.getElementById("edit_station").value = a.station || "";
+    document.getElementById("edit_warranty").value = a.warranty || "";
+    document.getElementById("edit_vendor").value = a.vendor || "";
+    document.getElementById("edit_datePurchased").value = a.datePurchased || "";
+    document.getElementById("edit_notes").value = a.notes || "";
+    editModal.style.display = "block";
+  });
+
+  closeEdit.addEventListener("click", () => {
+    editModal.style.display = "none";
+  });
+
+  editSaveBtn.addEventListener("click", () => {
+    if (editIndex === null) {
+      alert("No asset selected for edit.");
+      return;
+    }
+    const updated = {
+      tag: document.getElementById("edit_tag").value.trim(),
+      assetName: document.getElementById("edit_assetName").value.trim(),
+      assetType: document.getElementById("edit_assetType").value.trim(),
+      serial: document.getElementById("edit_serial").value.trim(),
+      status: document.getElementById("edit_status").value.trim(),
+      location: document.getElementById("edit_location").value.trim(),
+      station: document.getElementById("edit_station").value.trim(),
+      warranty: document.getElementById("edit_warranty").value.trim(),
+      vendor: document.getElementById("edit_vendor").value.trim(),
+      datePurchased: document.getElementById("edit_datePurchased").value || "",
+      date: new Date().toLocaleDateString(),
+      notes: document.getElementById("edit_notes").value.trim()
+    };
+
+    if (!updated.tag || !updated.serial) {
+      alert("Asset Tag and Serial Number are required.");
+      return;
+    }
+
+    // duplicate check excluding the current editIndex
+    const dup = assets.some((a, i) => i !== editIndex && (a.tag === updated.tag || a.serial === updated.serial));
+    if (dup) {
+      alert("Duplicate Asset Tag or Serial Number detected. Update blocked.");
+      return;
+    }
+
+    assets[editIndex] = updated;
+    editIndex = null;
+    renderTable();
+    editModal.style.display = "none";
+  });
+
+  // --- DELETE ---
+  deleteBtn.addEventListener("click", () => {
+    const boxes = Array.from(document.querySelectorAll("#inventoryTable tbody input[type='checkbox']:checked"));
+    if (boxes.length === 0) {
+      alert("Please select at least one row to delete.");
+      return;
+    }
+    if (!confirm("Are you sure you want to delete the selected asset(s)?")) return;
+    const idxs = boxes.map(cb => parseInt(cb.dataset.index, 10));
+    assets = assets.filter((_, i) => !idxs.includes(i));
+    renderTable();
+  });
+
+  // --- EXPORT CSV ---
+  exportBtn.addEventListener("click", () => {
+    let csv = "Asset Tag,Asset Name,Asset Type,Serial No.,Status,Location,Station No.,Warranty,Vendor,Date Purchased,Date Added/Updated,Remarks\n";
+    assets.forEach(a => {
+      csv += `"${a.tag || ""}","${a.assetName || ""}","${a.assetType || ""}","${a.serial || ""}","${a.status || ""}","${a.location || ""}","${a.station || ""}","${a.warranty || ""}","${a.vendor || ""}","${a.datePurchased || ""}","${a.date || ""}","${a.notes || ""}"\n`;
+    });
+    const blob = new Blob([csv], { type: "text/csv" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    const yy = String(now.getFullYear()).slice(-2);
+    link.download = `CFInventory${mm}${dd}${yy}.csv`;
+    link.click();
+  });
+
+  // --- IMPORT CSV (robust parser; blocks duplicates; removes timestamps from date) ---
+  importBtn.addEventListener("click", () => importFile.click());
+
+  importFile.addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const rows = ev.target.result.split("\n").slice(1);
+      let added = 0;
+      rows.forEach(line => {
+        if (!line.trim()) return;
+        // handles quoted fields with commas
+        const cols = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+        if (!cols || cols.length < 12) return;
+        const tag = cols[0].replace(/"/g, "").trim();
+        const serial = cols[3].replace(/"/g, "").trim();
+        // skip if duplicate exists
+        if (assets.some(a => a.tag === tag || a.serial === serial)) return;
+        const cleanDate = cols[10].replace(/"/g, "").split(" ")[0];
+        const cleanRemarks = (cols[11] || "").replace(/["\r\n]/g, "").trim();
+        assets.push({
+          tag,
+          assetName: cols[1].replace(/"/g, "").trim(),
+          assetType: cols[2].replace(/"/g, "").trim(),
+          serial,
+          status: cols[4].replace(/"/g, "").trim(),
+          location: cols[5].replace(/"/g, "").trim(),
+          station: cols[6].replace(/"/g, "").trim(),
+          warranty: cols[7].replace(/"/g, "").trim(),
+          vendor: cols[8].replace(/"/g, "").trim(),
+          datePurchased: cols[9].replace(/"/g, "").trim(),
+          date: cleanDate,
+          notes: cleanRemarks
+        });
+        added++;
       });
+      importFile.value = ""; // reset
       renderTable();
+      if (added > 0) alert(`${added} assets imported`); else alert("No new assets imported (duplicates skipped or empty file).");
     };
     reader.readAsText(file);
   });
+
+  // --- FILTERS / SEARCH wiring ---
+  [filterStatus, filterType, filterDate].forEach(el => el.addEventListener("change", renderTable));
+  searchInput.addEventListener("input", renderTable);
+
+  // initialize render
+  renderTable();
+
+  // close modals when clicking outside modal-content
+  document.addEventListener("click", (e) => {
+    // addModal
+    if (e.target === addModal) addModal.style.display = "none";
+    if (e.target === editModal) editModal.style.display = "none";
+  });
+
+  // keep Enter key from submitting invisible forms - optionally we can handle Enter in login
+  document.getElementById("username").addEventListener("keyup", (e) => { if (e.key === "Enter") loginBtn.click(); });
+  document.getElementById("password").addEventListener("keyup", (e) => { if (e.key === "Enter") loginBtn.click(); });
+});
 </script>
+
 </body>
 </html>
